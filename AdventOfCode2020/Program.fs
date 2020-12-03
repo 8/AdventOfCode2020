@@ -216,14 +216,36 @@ module Day3 =
           | false -> 0
       treeCount
       
-    let countTrees = countTrees2 movement
-      
     let run () =
-      
+      let countTrees = countTrees2 movement
       let exampleSolution = (MapOfTrees.fromFilePath "../../../day3-testinput.txt") |> countTrees
       let realSolution = (MapOfTrees.fromFilePath "../../../day3-realinput.txt" ) |> countTrees
       printfn $"Day 3 - Part1 - Solution for ExampleInput: {exampleSolution}"
       printfn $"Day 3 - Part1 - Solution for RealInput: {realSolution}"
+  
+  module Part2 =
+    open Part1
+
+    let movements = [|
+      { Right = 1; Down = 1 }
+      { Right = 3; Down = 1 }
+      { Right = 5; Down = 1 }
+      { Right = 7; Down = 1 }
+      { Right = 1; Down = 2 }
+    |]
     
+    let run () =
+      let result (map : MapOfTrees) : uint64 =
+        let countTrees movement = countTrees2 movement map
+        movements
+        |> Array.map countTrees
+        |> Array.fold (fun i1 i2 -> i1 * uint64 i2) 1UL
+      
+      let exampleSolution = (MapOfTrees.fromFilePath "../../../day3-testinput.txt") |> result
+      let realSolution = (MapOfTrees.fromFilePath "../../../day3-realinput.txt" ) |> result
+      printfn $"Day 3 - Part1 - Solution for ExampleInput: {exampleSolution}"
+      printfn $"Day 3 - Part1 - Solution for RealInput: {realSolution}"
+
 
 Day3.Part1.run ()
+Day3.Part2.run ()
