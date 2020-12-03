@@ -146,12 +146,84 @@ module Day2 =
       |> Array.filter Entry.isValid 
       |> Array.length
 
-    let exampleSolution = exampleInput |> validEntries
-    let solution = (lines ()) |> validEntries
-
     let run () =
+      let exampleSolution = exampleInput |> validEntries
+      let solution = (lines ()) |> validEntries
       printfn $"Day2 - Part2 - Solution for ExampleInput: {exampleSolution}"
       printfn $"Day2 - Part2 - Solution for Real Input: {solution}"
 
 //Day2.Part1.run ()
-Day2.Part2.run ()
+//Day2.Part2.run ()
+
+module Day3 =
+  
+  module Part1 =
+
+    type Position = {
+      X : int
+      Y : int
+    }
+    type MapOfTrees = char [,]
+    module MapOfTrees =
+      let fromLines (lines : string array) =
+        let width, height = lines.[0].Length, lines.Length 
+        let a = Array2D.create width height ' '
+        let setChar y x char = a.[x,y] <- char
+        let setLine y (line:string) = line.ToCharArray() |> Array.iteri (setChar y)
+        lines |> Array.iteri setLine
+        a
+
+      let fromFilePath (filePath : string) : MapOfTrees = 
+        let lines = File.ReadLines filePath |> Seq.toArray
+        fromLines lines
+
+      let is (c : char) (map : MapOfTrees) (pos : Position) : bool =
+        map.[pos.X % map.GetLength(0), pos.Y] = c
+      
+      let isTree = is '#'
+      let isFree = is '.'
+     
+    type Movement = {
+      Right : int
+      Down : int
+    }
+
+    module Position =
+      let move (position : Position) (movement : Movement) : Position =
+        {
+          X = position.X + movement.Right
+          Y = position.Y + movement.Down
+        }
+
+    let movement = {
+      Right = 3
+      Down = 1
+    }
+    
+    let countTrees2 (movement : Movement) (map : MapOfTrees) : int =
+      let mutable pos = {
+        X = 0
+        Y = 0
+      }
+      let isLastLine y = y = map.GetLength(1) - 1
+      
+      let mutable treeCount = 0
+      while not (isLastLine pos.Y) do
+        pos <- Position.move pos movement
+        treeCount <- treeCount +
+          match MapOfTrees.isTree map pos with
+          | true -> 1
+          | false -> 0
+      treeCount
+      
+    let countTrees = countTrees2 movement
+      
+    let run () =
+      
+      let exampleSolution = (MapOfTrees.fromFilePath "../../../day3-testinput.txt") |> countTrees
+      let realSolution = (MapOfTrees.fromFilePath "../../../day3-realinput.txt" ) |> countTrees
+      printfn $"Day 3 - Part1 - Solution for ExampleInput: {exampleSolution}"
+      printfn $"Day 3 - Part1 - Solution for RealInput: {realSolution}"
+    
+
+Day3.Part1.run ()
