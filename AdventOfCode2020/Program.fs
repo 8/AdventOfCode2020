@@ -243,8 +243,9 @@ module Day3 =
       
       let exampleSolution = (MapOfTrees.fromFilePath "../../../day3-testinput.txt") |> result
       let realSolution = (MapOfTrees.fromFilePath "../../../day3-realinput.txt" ) |> result
-      printfn $"Day 3 - Part1 - Solution for ExampleInput: {exampleSolution}"
-      printfn $"Day 3 - Part1 - Solution for RealInput: {realSolution}"
+      printfn $"Day 3 - Part2 - Solution for ExampleInput: {exampleSolution}"
+      printfn $"Day 3 - Part2 - Solution for RealInput: {realSolution}"
+
 
 
 Day3.Part1.run ()
