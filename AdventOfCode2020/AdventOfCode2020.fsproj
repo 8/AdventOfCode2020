@@ -13,6 +13,7 @@
     <Content Include="day3-realinput.txt" />
     <Content Include="day4-testinput.txt" />
     <Content Include="day4-realinput.txt" />
+    <Content Include="day5-realinput.txt" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,5 @@
 open System
-open System.Collections
 open System.IO
-open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
 
 module Day1 =
@@ -417,5 +415,57 @@ module Day4 =
       printfn $"Day 4 - Part2 - Number of valid Passports in ExampleInput: {exampleSolution}"
       printfn $"Day 4 - Part2 - Number of valid Passports in RealSolution: {realSolution}"
 
-Day4.Part1.run ()
-Day4.Part2.run ()
+//Day4.Part1.run ()
+//Day4.Part2.run ()
+
+module Day5 =
+  module Part1 =
+    
+    let parseSeatId (s : string) : int =
+      let value index char  =
+        match index with
+        | 0 | 1 | 2 ->
+          match char with
+          | 'L' -> 0
+          | 'R' -> 1 <<< index
+          | _ -> failwith $"Invalid character {char} at Position {index}"
+        | _ ->
+          match char with
+          | 'F' -> 0
+          | 'B' -> 1 <<< index
+          | _ -> failwith $"Invalid character {char} at Position {index}"
+        
+      s.ToCharArray()
+      |> Array.rev
+      |> Array.mapi value
+      |> Array.sum
+
+    let test () =  
+      let testInput = [|
+        "BFFFBBFRRR"
+        "FFFBBBFRRR"
+        "BBFFBBFRLL"
+      |]
+      
+      testInput
+      |> Array.map (fun input -> {| Input = input; SeatId = parseSeatId input |})
+      |> Array.iter (fun item -> printfn $"parsed: {item.Input} => {item.SeatId}")
+
+    let run () =
+      let lines = File.ReadLines "../../../day5-realinput.txt"
+      let highestSeatId =
+        lines
+        |> Seq.map parseSeatId
+        |> Seq.max
+
+      printfn $"Day 5 - Part 1 - highest seat ID is: {highestSeatId}"
+  
+  module Part2 =
+
+    let run () =
+      let seatId = None
+      printfn $"Day 5 - Part 2 - seat ID is: {seatId}"
+    
+//Day5.Part1.test ()
+Day5.Part1.run ()
+Day5.Part2.run ()
