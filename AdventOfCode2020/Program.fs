@@ -1,5 +1,7 @@
 open System
+open System.Collections
 open System.IO
+open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
 
 module Day1 =
@@ -246,7 +248,94 @@ module Day3 =
       printfn $"Day 3 - Part2 - Solution for ExampleInput: {exampleSolution}"
       printfn $"Day 3 - Part2 - Solution for RealInput: {realSolution}"
 
+//Day3.Part1.run ()
+//Day3.Part2.run ()
 
+module Day4 =
+  
+  let testFilePath = "../../../day4-testinput.txt"
+  let realFilePath = "../../../day4-realinput.txt"
 
-Day3.Part1.run ()
-Day3.Part2.run ()
+  module Part1 =
+    
+    type KeyValue = { Key : string; Value : string }
+    type Passport = { KeyValues: KeyValue array }
+    
+    module KeyValue =
+      let format kv =
+        $"{kv.Key}: {kv.Value}"
+
+      let fromString (s : string) : KeyValue =
+        let key, value =
+          let parts = s.Split(":")
+          parts.[0], parts.[1]
+        { Key = key; Value = value }
+    
+    module Passport =
+      let fromStrings block =
+        let kvs =
+          block
+          |> Array.filter (fun s -> s <> "")
+          |> Array.collect (fun line -> line.Split(" "))
+          |> Array.map KeyValue.fromString
+          |> Array.sortBy (fun kv -> kv.Key)
+        { KeyValues = kvs }
+      
+      let format passport =
+        passport.KeyValues
+        |> Array.map KeyValue.format
+        |> String.concat Environment.NewLine
+      
+      let isValid (passport : Passport) =
+        let requiredKeys = set ([| "byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"; |])
+        
+        let keys =
+          passport.KeyValues
+          |> Array.map (fun kv -> kv.Key)
+          |> set
+          
+        let missingKeys =
+          keys
+          |> Set.difference requiredKeys
+          
+        missingKeys.IsEmpty || missingKeys.Count = 1 && missingKeys.Contains("cid")
+
+    module Passports =
+      let fromLines lines =
+        let passportBlocks (lines : string seq) : string array seq =
+          seq {
+            let mutable lineBuffer = []
+            for line in lines do
+              lineBuffer <- lineBuffer @ [line]
+              if line = "" then
+                yield lineBuffer |> List.toArray
+                lineBuffer <- []
+            if lineBuffer.Length <> 0 then
+              yield lineBuffer |> List.toArray
+          }
+
+        lines
+        |> passportBlocks
+        |> Seq.map Passport.fromStrings
+      
+      let fromFile filePath =
+        File.ReadLines filePath |> fromLines
+
+    let countValidPassports (passports : Passport seq) =
+      passports
+      |> Seq.filter Passport.isValid
+      |> Seq.length
+
+    let run () =
+
+      testFilePath
+      |> Passports.fromFile
+      |> Seq.map Passport.format
+      |> Seq.iter (printfn "%s\n")
+
+      let exampleSolution = testFilePath |> Passports.fromFile |> countValidPassports
+      let realSolution = realFilePath |> Passports.fromFile |> countValidPassports
+      printfn $"Day 4 - Part1 - Number of valid Passports in ExampleInput: {exampleSolution}"
+      printfn $"Day 4 - Part1 - Number of valid Passports in RealSolution: {realSolution}"
+
+Day4.Part1.run ()
