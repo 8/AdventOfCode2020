@@ -270,7 +270,12 @@ module Day4 =
           let parts = s.Split(":")
           parts.[0], parts.[1]
         { Key = key; Value = value }
-    
+        
+      type Height = {
+        Value : int
+        Unit: string
+      }
+
     module Passport =
       let fromStrings block =
         let kvs =
@@ -285,20 +290,6 @@ module Day4 =
         passport.KeyValues
         |> Array.map KeyValue.format
         |> String.concat Environment.NewLine
-      
-      let isValid (passport : Passport) =
-        let requiredKeys = set ([| "byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"; |])
-        
-        let keys =
-          passport.KeyValues
-          |> Array.map (fun kv -> kv.Key)
-          |> set
-          
-        let missingKeys =
-          keys
-          |> Set.difference requiredKeys
-          
-        missingKeys.IsEmpty || missingKeys.Count = 1 && missingKeys.Contains("cid")
 
     module Passports =
       let fromLines lines =
@@ -321,21 +312,110 @@ module Day4 =
       let fromFile filePath =
         File.ReadLines filePath |> fromLines
 
+    let isValid (passport : Passport) =
+        let requiredKeys = set ([| "byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"; |])
+        
+        let keys =
+          passport.KeyValues
+          |> Array.map (fun kv -> kv.Key)
+          |> set
+          
+        let missingKeys =
+          keys
+          |> Set.difference requiredKeys
+          
+        missingKeys.IsEmpty || missingKeys.Count = 1 && missingKeys.Contains("cid")
+
     let countValidPassports (passports : Passport seq) =
       passports
-      |> Seq.filter Passport.isValid
+      |> Seq.filter isValid
       |> Seq.length
 
     let run () =
 
-      testFilePath
-      |> Passports.fromFile
-      |> Seq.map Passport.format
-      |> Seq.iter (printfn "%s\n")
+//      testFilePath
+//      |> Passports.fromFile
+//      |> Seq.map Passport.format
+//      |> Seq.iter (printfn "%s\n")
 
       let exampleSolution = testFilePath |> Passports.fromFile |> countValidPassports
       let realSolution = realFilePath |> Passports.fromFile |> countValidPassports
       printfn $"Day 4 - Part1 - Number of valid Passports in ExampleInput: {exampleSolution}"
       printfn $"Day 4 - Part1 - Number of valid Passports in RealSolution: {realSolution}"
+      
+  module Part2 =
+    open Part1
+
+    module KeyValue =
+      open Part1.KeyValue
+      
+      let isValid kv =
+        let parseYear s =
+          match Regex.IsMatch(s, "^\d{4}$") with
+          | true -> Some (int s)
+          | false -> None
+        let between (min : int) (max : int) (n : int) =
+          n >= min && n <= max
+        let isValidYear min max s =
+          s
+          |> parseYear
+          |> function
+            | Some year when year |> between min max -> true
+            | _ -> false
+        let isValidEyeColor color =
+          let validColors = set([|"amb"; "blu"; "brn"; "gry"; "grn"; "hzl"; "oth"|])
+          validColors.Contains color
+        let isValidCid s = true
+
+        let heightFromString s =
+          Regex.Match(s, "^(?<height>\d+)(?<unit>.+)$")
+          |> function
+            | m when m.Success = true -> Some {
+              Value = (int m.Groups.["height"].Value)
+              Unit = m.Groups.["unit"].Value }
+            | _ -> None
+        
+        let isHeightValid (height : Height) : bool =
+          match height.Unit with
+          | "cm" -> height.Value |> between 150 193
+          | "in" -> height.Value |> between 59 76
+          | _ -> false
+          
+        let isHairColorValid (s : string) =
+          Regex.IsMatch(s, "^#[0-9a-f]{6}$")
+          
+        let isValidPid (s : string) =
+          Regex.IsMatch(s, "^\d{9}$")
+
+        match kv.Key with
+        | "byr" -> kv.Value |> isValidYear 1920 2002
+        | "iyr" -> kv.Value |> isValidYear 2010 2020
+        | "eyr" -> kv.Value |> isValidYear 2020 2030
+        | "hgt" -> kv.Value |> heightFromString |> Option.map isHeightValid |> Option.defaultValue false
+        | "hcl" -> kv.Value |> isHairColorValid
+        | "ecl" -> kv.Value |> isValidEyeColor
+        | "pid" -> kv.Value |> isValidPid
+        | "cid" -> kv.Value |> isValidCid
+        | _ -> false
+
+    let isPassportValid passport =
+      let isValidPart1 = Part1.isValid
+      let isValidPart2 (passport : Passport) =
+        let invalidKeyValues = passport.KeyValues |> Array.filter (fun kv -> not (KeyValue.isValid kv))
+//        passport.KeyValues |> Array.forall KeyValue.isValid
+        invalidKeyValues |> Array.length = 0
+      isValidPart1 passport && isValidPart2 passport 
+
+    let countValidPassports (passports : Passport seq) =
+      passports
+      |> Seq.filter isPassportValid
+      |> Seq.length
+    
+    let run () =
+      let exampleSolution = testFilePath |> Passports.fromFile |> countValidPassports
+      let realSolution = realFilePath |> Passports.fromFile |> countValidPassports
+      printfn $"Day 4 - Part2 - Number of valid Passports in ExampleInput: {exampleSolution}"
+      printfn $"Day 4 - Part2 - Number of valid Passports in RealSolution: {realSolution}"
 
 Day4.Part1.run ()
+Day4.Part2.run ()
