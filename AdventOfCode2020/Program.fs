@@ -419,6 +419,9 @@ module Day4 =
 //Day4.Part2.run ()
 
 module Day5 =
+  
+  let inputFile = "../../../day5-realinput.txt"
+  
   module Part1 =
     
     let parseSeatId (s : string) : int =
@@ -452,7 +455,7 @@ module Day5 =
       |> Array.iter (fun item -> printfn $"parsed: {item.Input} => {item.SeatId}")
 
     let run () =
-      let lines = File.ReadLines "../../../day5-realinput.txt"
+      let lines = File.ReadLines inputFile
       let highestSeatId =
         lines
         |> Seq.map parseSeatId
@@ -463,9 +466,26 @@ module Day5 =
   module Part2 =
 
     let run () =
-      let seatId = None
-      printfn $"Day 5 - Part 2 - seat ID is: {seatId}"
+      let seatIds =
+        File.ReadLines inputFile 
+        |> Seq.map Part1.parseSeatId
+        |> Seq.toArray
+        |> Array.sort
+
+      let findMissingSeatId (seatIds : int array) : int =
+        let isIndex (seatIds : int array) (index : int) : bool =
+            index > 0 &&
+            index + 1 < seatIds.Length &&
+            seatIds.[index-1] + 2 = seatIds.[index]
+        let index =
+          seq { 0 .. seatIds.Length - 1 }
+          |> Seq.find (isIndex seatIds)
+        seatIds.[index-1] + 1
+
+      let missingSeatId = findMissingSeatId seatIds
+      
+      printfn $"Day 5 - Part 2 - seat ID is: {missingSeatId}"
     
 //Day5.Part1.test ()
-Day5.Part1.run ()
+//Day5.Part1.run ()
 Day5.Part2.run ()
