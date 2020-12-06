@@ -497,40 +497,62 @@ module Day6 =
   
   module Part1 =
 
+    let group (lines : string array) : string array array =
+      lines
+        |> Array.indexed
+        |> Array.filter (fun (index, line) -> line = "")
+        |> Array.map fst
+        |> (fun indices -> [|
+          yield 0
+          yield! indices
+          yield lines.Length
+        |] )
+      |> Array.pairwise
+      |> Array.map (fun (prev, curr) ->
+        lines.[prev..curr]
+        |> Array.filter (fun l -> l <> "")
+        )
+
+    let countDistincts (group : string array) : int =
+      String.concat "" group
+      |> Array.ofSeq
+      |> Array.distinct
+      |> Array.length
+
+    let solve filePath =
+      File.ReadLines filePath 
+      |> Seq.toArray
+      |> group
+      |> Array.map countDistincts
+      |> Array.sum
+
     let run () =
-      
-      let group (lines : string array) : string array array =
-        lines
-          |> Array.indexed
-          |> Array.filter (fun (index, line) -> line = "")
-          |> Array.map fst
-          |> (fun indices -> [|
-            yield 0
-            yield! indices
-            yield lines.Length
-          |] )
-        |> Array.pairwise
-        |> Array.map (fun (prev, curr) ->
-          lines.[prev..curr]
-          )
-
-      let countDistincts (group : string array) : int =
-        String.concat "" group
-        |> Array.ofSeq
-        |> Array.distinct
-        |> Array.length
-
-      let solve filePath =
-        File.ReadLines filePath 
-        |> Seq.toArray
-        |> group
-        |> Array.map countDistincts
-        |> Array.sum
-
       let exampleSolution = solve filePathTest
       printfn $"Day 6 - Part 1 - Sum of Group Yesses for example Input: {exampleSolution}"
       
       let realSolution = solve filePathReal
       printfn $"Day 6 - Part 1 - Sum of Group Yesses for real Input: {realSolution}"
 
-Day6.Part1.run ()
+  module Part2 =
+
+    let solve filePath =
+      
+      let sets =
+        File.ReadAllLines filePath
+        |> Part1.group
+        |> Array.map (Array.map (fun s -> set (s.ToCharArray())))
+      
+      sets
+      |> Array.map Set.intersectMany
+      |> Array.map Set.count
+      |> Array.sum
+    
+    let run () =
+      let exampleSolution = solve filePathTest
+      printfn $"Day 6 - Part 2 - Sum of Group Everyone Yesses for example Input: {exampleSolution}"
+      
+      let realSolution = solve filePathReal
+      printfn $"Day 6 - Part 2 - Sum of Group Everyone Yesses for real Input: {realSolution}"
+
+//Day6.Part1.run ()
+Day6.Part2.run ()
