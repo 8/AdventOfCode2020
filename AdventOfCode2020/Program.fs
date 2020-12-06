@@ -488,4 +488,49 @@ module Day5 =
     
 //Day5.Part1.test ()
 //Day5.Part1.run ()
-Day5.Part2.run ()
+//Day5.Part2.run ()
+
+module Day6 =
+  
+  let filePathTest = "../../../day6-testinput.txt"
+  let filePathReal = "../../../day6-realinput.txt"
+  
+  module Part1 =
+
+    let run () =
+      
+      let group (lines : string array) : string array array =
+        lines
+          |> Array.indexed
+          |> Array.filter (fun (index, line) -> line = "")
+          |> Array.map fst
+          |> (fun indices -> [|
+            yield 0
+            yield! indices
+            yield lines.Length
+          |] )
+        |> Array.pairwise
+        |> Array.map (fun (prev, curr) ->
+          lines.[prev..curr]
+          )
+
+      let countDistincts (group : string array) : int =
+        String.concat "" group
+        |> Array.ofSeq
+        |> Array.distinct
+        |> Array.length
+
+      let solve filePath =
+        File.ReadLines filePath 
+        |> Seq.toArray
+        |> group
+        |> Array.map countDistincts
+        |> Array.sum
+
+      let exampleSolution = solve filePathTest
+      printfn $"Day 6 - Part 1 - Sum of Group Yesses for example Input: {exampleSolution}"
+      
+      let realSolution = solve filePathReal
+      printfn $"Day 6 - Part 1 - Sum of Group Yesses for real Input: {realSolution}"
+
+Day6.Part1.run ()
