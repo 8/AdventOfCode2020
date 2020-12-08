@@ -1,4 +1,5 @@
 open System
+open System.Collections.Generic
 open System.IO
 open System.Text.RegularExpressions
 
@@ -555,4 +556,89 @@ module Day6 =
       printfn $"Day 6 - Part 2 - Sum of Group Everyone Yesses for real Input: {realSolution}"
 
 //Day6.Part1.run ()
-Day6.Part2.run ()
+//Day6.Part2.run ()
+
+module Day7 =
+  module Part1 =
+    
+    type BagRelation = {
+      BagName : string
+      ContainedBags : (int * string) array
+    }
+    
+    module BagRelation =
+      let fromLine line =
+        let r = Regex(@"^(?<Name>\w+\s\w+) bags contain (((?<Count>\d+)\s(?<ContainedBag>\w+\s\w+) bags?(,\s)?)+|no other bags)\.$")
+        let m = r.Match(line)
+        if not m.Success then
+          raise <| ArgumentOutOfRangeException(nameof line, $"cannot parse line '{line}'")
+
+        let name = m.Groups.["Name"].Value
+        let containedBags =
+          let containedBagNames =
+            m.Groups.["ContainedBag"].Captures
+            |> Seq.toArray
+            |> Array.map (fun c -> c.Value)
+          let containedBagCounts =
+            m.Groups.["Count"].Captures
+            |> Seq.toArray
+            |> Array.map (fun c -> c.Value)
+            |> Array.map int
+          containedBagNames |> Array.zip containedBagCounts 
+          
+        {
+          BagName = name
+          ContainedBags = containedBags 
+        }
+
+    let run () =
+
+      let solve bag file : int =
+        let bagRelations =
+          File.ReadAllLines file
+          |> Array.map BagRelation.fromLine
+        
+        (* create a lookup from contained bag to container *)
+        let contained2Container =
+          bagRelations
+          |> Array.map (fun bagRelation ->
+                        bagRelation.ContainedBags
+                        |> Array.map (fun (_, containedBag) -> containedBag, bagRelation.BagName))
+          |> Array.concat
+          |> Array.groupBy fst
+          |> Array.map (fun (group, tuples) -> group, tuples |> Array.map snd)
+          |> dict
+          
+        let countParentBags =
+          let getParents (lookup: IDictionary<string, string[]>) bag : string list =
+            if lookup.ContainsKey bag then
+              lookup.[bag] |> Array.toList
+            else
+              []
+
+          let rec parentsForBag (lookup : IDictionary<string, string[]>) bag =
+            let parents = getParents lookup bag
+            let ancestors = List.map (parentsForBag lookup) parents |> List.concat
+            parents
+            |> List.append ancestors 
+            |> List.distinct
+
+          let bags = parentsForBag contained2Container bag
+
+          bags
+          |> List.length
+        
+        countParentBags
+        
+      let bagName = "shiny gold"
+      let filePath fileName = Path.Combine("../../../", fileName)
+      let testFile = filePath "day7-input0.txt"
+      let realFile = filePath "day7-input1.txt"
+
+      solve bagName testFile
+      |> printfn "Day 7 - Part 1 - Count of Outmost bags for example input: %i"
+      
+      solve bagName realFile
+      |> printfn "Day 7 - Part 2 - Count of Outmost bags for example input: %i"
+
+Day7.Part1.run ()
