@@ -682,76 +682,93 @@ module Day7 =
 //Day7.Part2.run ()
 
 module Day8 =
-  module Part1 =
-    type Operation = 
-      | NOP
-      | ACC
-      | JMP
-      
-    module Operation =
-      let fromString (s : string) =
-        match s with
-        | "nop" -> NOP
-        | "acc" -> ACC
-        | "jmp" -> JMP
-        | _ -> raise <| ArgumentOutOfRangeException(nameof s, $"Cannot parse operation '{s}'")
 
-    type Instruction = {
-      Operation : Operation
-      Argument : int
-    }
-    
-    module Instruction =
-      let fromLine line =
-        let m = Regex.Match(line, @"^(?<op>nop|acc|jmp)\s(?<arg>[-+]\d+)$")
-        if not m.Success then
-          raise <| ArgumentOutOfRangeException(nameof line, $"Cannot parse instruction '{line}'")
-        let op = Operation.fromString m.Groups.["op"].Value
-        let arg = m.Groups.["arg"].Value |> int
-        {
-          Operation = op
-          Argument = arg
-        }
-    
-    type Program = {
-      Instructions : Instruction array
-    }
+  type Operation = 
+    | NOP
+    | ACC
+    | JMP
+  type Instruction = {
+    Operation : Operation
+    Argument : int
+  }
+  
+  type Program = {
+    Instructions : Instruction array
+  }
+  
+  type EipHistory = {
+    Set : int Set
+    List : int array
+  }
+  
+  type State = {
+    ACC : int
+    EIP : int
+    EipHistory : EipHistory
+  }
+  
+  module Operation =
+    let fromString (s : string) =
+      match s with
+      | "nop" -> NOP
+      | "acc" -> ACC
+      | "jmp" -> JMP
+      | _ -> raise <| ArgumentOutOfRangeException(nameof s, $"Cannot parse operation '{s}'")
 
-    module Program =
-      let fromFile file =
-        File.ReadAllLines file
-        |> Array.map Instruction.fromLine
-        |> fun instructions -> { Instructions = instructions }
-
-      type State  = {
-        ACC : int
-        EIP : int
-        EipHistory : int Set
+  module Instruction =
+    let fromLine line =
+      let m = Regex.Match(line, @"^(?<op>nop|acc|jmp)\s(?<arg>[-+]\d+)$")
+      if not m.Success then
+        raise <| ArgumentOutOfRangeException(nameof line, $"Cannot parse instruction '{line}'")
+      let op = Operation.fromString m.Groups.["op"].Value
+      let arg = m.Groups.["arg"].Value |> int
+      {
+        Operation = op
+        Argument = arg
       }
-      
-      let step program state =
-        let instruction = program.Instructions |> Array.tryItem state.EIP
-        match instruction with
-        | None -> None
-        | Some instruction ->
-          match state.EipHistory.Contains state.EIP with
-          | true -> None
-          | false ->
-            match instruction.Operation with
-            | ACC -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + 1; ACC = state.ACC + instruction.Argument; }
-            | NOP -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + 1;}
-            | JMP -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + instruction.Argument;}
 
-      let rec exe program state =
-        let newState = step program state
-        match newState with
-        | None -> state
-        | Some s -> exe program s
+  module EipHistory =
+    let add history eip = {
+        history with
+          Set = history.Set.Add eip
+          List = [|eip|] |> Array.append history.List
+        }
+    let init = { Set = set([]); List = [||] }
+  
+  module State =
+    let init = { ACC = 0; EIP = 0; EipHistory = EipHistory.init }
+    
+  module Program =
+    let fromFile file =
+      File.ReadAllLines file
+      |> Array.map Instruction.fromLine
+      |> fun instructions -> { Instructions = instructions }
+
+    let step program state =
+      let instruction = program.Instructions |> Array.tryItem state.EIP
+      match instruction with
+      | None -> None
+      | Some instruction ->
+        match state.EipHistory.Set.Contains state.EIP with
+        | true -> None
+        | false ->
+          match instruction.Operation with
+          | ACC -> Some { state with EipHistory = EipHistory.add state.EipHistory state.EIP; EIP = state.EIP + 1; ACC = state.ACC + instruction.Argument; }
+          | NOP -> Some { state with EipHistory = EipHistory.add state.EipHistory state.EIP; EIP = state.EIP + 1;}
+          | JMP -> Some { state with EipHistory = EipHistory.add state.EipHistory state.EIP; EIP = state.EIP + instruction.Argument;}
+
+    let rec exe program state =
+      let newState = step program state
+      match newState with
+      | None -> state
+      | Some s -> exe program s
+
+  module Part1 =
 
     let run () =
       let solve file =
         let p = Program.fromFile file
-        let result = Program.exe p { ACC = 0; EIP = 0; EipHistory = set([]) }
+        let result = Program.exe p State.init
         result.ACC
       
       solve "../../../day8-input0.txt"
@@ -760,4 +777,55 @@ module Day8 =
       solve "../../../day8-input1.txt"
       |> printfn "Day 8 - Part 1 - Accumulator in real input at forever loop: %i"
 
-Day8.Part1.run ()
+  module Part2 =
+    
+    let solve file =
+      let p = Program.fromFile file
+      
+      let rec findWrongInstruction program programPatched (patchedHistory : int Set) =
+        let hasReachedEnd (state: State) =
+          state.EIP = program.Instructions.Length
+        let patchProgram (p : Program) index = {
+            p with 
+              Instructions = [|
+                yield! p.Instructions.[0..index-1]
+                yield { p.Instructions.[index] with
+                          Operation =
+                            match p.Instructions.[index].Operation with
+                            | NOP -> JMP
+                            | ACC -> ACC
+                            | JMP -> NOP
+                      } 
+                yield! p.Instructions.[index + 1..]
+              |]
+          }
+        let findPatchIndex program (state : State) (patchedHistory : int Set) =
+          state.EipHistory.List
+          |> Array.findBack (fun i ->
+            not (patchedHistory.Contains(i)) &&
+            match program.Instructions.[i].Operation with
+            | JMP -> true
+            | NOP -> true
+            | ACC -> false)
+        
+        let state = Program.exe programPatched State.init
+        
+        if hasReachedEnd state then
+          state
+        else
+          let patchIndex = findPatchIndex program state patchedHistory
+          let patchedProgram = patchProgram program patchIndex
+          findWrongInstruction program patchedProgram (patchedHistory.Add patchIndex)
+        
+      let finalState = findWrongInstruction p p Set.empty
+      finalState.ACC
+    
+    let run () =
+      solve "../../../day8-input0.txt"
+      |> printfn "Day 8 - Part 2 - Accumulator in test input at end: %i"
+      
+      solve "../../../day8-input1.txt"
+      |> printfn "Day 8 - Part 2 - Accumulator in real input at end: %i"
+
+//Day8.Part1.run ()
+Day8.Part2.run ()
