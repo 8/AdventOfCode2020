@@ -19,6 +19,8 @@
     <Content Include="day7-input0.txt" />
     <Content Include="day7-input1.txt" />
     <Content Include="day7-part2-testinput.txt" />
+    <Content Include="day8-input0.txt" />
+    <Content Include="day8-input1.txt" />
   </ItemGroup>
 
 </Project>

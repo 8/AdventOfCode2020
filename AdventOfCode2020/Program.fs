@@ -658,8 +658,7 @@ module Day7 =
           |> dict
           
         let rec countBags (lookup : IDictionary<string, Part1.BagRelation>) bag =
-          let relation = lookup.[bag]
-          relation.ContainedBags
+          lookup.[bag].ContainedBags
           |> Array.map (fun r ->
             snd r
             |> countBags lookup
@@ -680,4 +679,85 @@ module Day7 =
       |> printfn "Day 7 - Part 2 - Count the number of bags in real file: %i"
 
 //Day7.Part1.run ()
-Day7.Part2.run ()
+//Day7.Part2.run ()
+
+module Day8 =
+  module Part1 =
+    type Operation = 
+      | NOP
+      | ACC
+      | JMP
+      
+    module Operation =
+      let fromString (s : string) =
+        match s with
+        | "nop" -> NOP
+        | "acc" -> ACC
+        | "jmp" -> JMP
+        | _ -> raise <| ArgumentOutOfRangeException(nameof s, $"Cannot parse operation '{s}'")
+
+    type Instruction = {
+      Operation : Operation
+      Argument : int
+    }
+    
+    module Instruction =
+      let fromLine line =
+        let m = Regex.Match(line, @"^(?<op>nop|acc|jmp)\s(?<arg>[-+]\d+)$")
+        if not m.Success then
+          raise <| ArgumentOutOfRangeException(nameof line, $"Cannot parse instruction '{line}'")
+        let op = Operation.fromString m.Groups.["op"].Value
+        let arg = m.Groups.["arg"].Value |> int
+        {
+          Operation = op
+          Argument = arg
+        }
+    
+    type Program = {
+      Instructions : Instruction array
+    }
+
+    module Program =
+      let fromFile file =
+        File.ReadAllLines file
+        |> Array.map Instruction.fromLine
+        |> fun instructions -> { Instructions = instructions }
+
+      type State  = {
+        ACC : int
+        EIP : int
+        EipHistory : int Set
+      }
+      
+      let step program state =
+        let instruction = program.Instructions |> Array.tryItem state.EIP
+        match instruction with
+        | None -> None
+        | Some instruction ->
+          match state.EipHistory.Contains state.EIP with
+          | true -> None
+          | false ->
+            match instruction.Operation with
+            | ACC -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + 1; ACC = state.ACC + instruction.Argument; }
+            | NOP -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + 1;}
+            | JMP -> Some { state with EipHistory = state.EipHistory.Add state.EIP; EIP = state.EIP + instruction.Argument;}
+
+      let rec exe program state =
+        let newState = step program state
+        match newState with
+        | None -> state
+        | Some s -> exe program s
+
+    let run () =
+      let solve file =
+        let p = Program.fromFile file
+        let result = Program.exe p { ACC = 0; EIP = 0; EipHistory = set([]) }
+        result.ACC
+      
+      solve "../../../day8-input0.txt"
+      |> printfn "Day 8 - Part 1 - Accumulator in test input at forever loop: %i"
+      
+      solve "../../../day8-input1.txt"
+      |> printfn "Day 8 - Part 1 - Accumulator in real input at forever loop: %i"
+
+Day8.Part1.run ()
