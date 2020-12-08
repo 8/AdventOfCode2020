@@ -561,6 +561,11 @@ module Day6 =
 module Day7 =
   module Part1 =
     
+    let bagName = "shiny gold"
+    let filePath fileName = Path.Combine("../../../", fileName)
+    let testFile = filePath "day7-input0.txt"
+    let realFile = filePath "day7-input1.txt"
+
     type BagRelation = {
       BagName : string
       ContainedBags : (int * string) array
@@ -629,16 +634,50 @@ module Day7 =
           |> List.length
         
         countParentBags
-        
-      let bagName = "shiny gold"
-      let filePath fileName = Path.Combine("../../../", fileName)
-      let testFile = filePath "day7-input0.txt"
-      let realFile = filePath "day7-input1.txt"
 
       solve bagName testFile
       |> printfn "Day 7 - Part 1 - Count of Outmost bags for example input: %i"
       
       solve bagName realFile
-      |> printfn "Day 7 - Part 2 - Count of Outmost bags for example input: %i"
+      |> printfn "Day 7 - Part 1 - Count of Outmost bags for example input: %i"
 
-Day7.Part1.run ()
+  module Part2 =
+    
+    let run () =
+      
+      let solve bagName filePath =
+        
+        let bagRelations =
+          File.ReadLines filePath
+          |> Seq.map Part1.BagRelation.fromLine
+          |> Seq.toArray
+
+        let lookup =
+          bagRelations
+          |> Array.map (fun relation -> relation.BagName, relation)
+          |> dict
+          
+        let rec countBags (lookup : IDictionary<string, Part1.BagRelation>) bag =
+          let relation = lookup.[bag]
+          relation.ContainedBags
+          |> Array.map (fun r ->
+            snd r
+            |> countBags lookup
+            |> fun count -> count * fst r
+          )
+          |> Array.sum
+          |> (+) 1
+
+        countBags lookup bagName - 1
+
+      solve Part1.bagName Part1.testFile
+      |> printfn "Day 7 - Part 2 - Count the number of bags in test file: %i"
+      
+      solve Part1.bagName "../../../day7-part2-testinput.txt"
+      |> printfn "Day 7 - Part 2 - Count the number of bags in 2nd test fil: %i"
+      
+      solve Part1.bagName Part1.realFile
+      |> printfn "Day 7 - Part 2 - Count the number of bags in real file: %i"
+
+//Day7.Part1.run ()
+Day7.Part2.run ()
