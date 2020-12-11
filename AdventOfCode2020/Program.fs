@@ -831,33 +831,59 @@ module Day8 =
 
 module Day9 =
   module Part1 =
+    let readNumbers filePath =
+      File.ReadAllLines filePath
+      |> Array.map int64
+
+    let findInvalidNumber preambleLength numbers =
+      numbers
+      |> Array.indexed
+      |> Array.skip preambleLength
+      |> Array.find (fun (index, num) ->
+        let previousNumbers = numbers.[index - preambleLength..index - 1]
+        Array.allPairs previousNumbers previousNumbers
+        |> Array.exists (fun (i1, i2) -> i1 + i2 = num)
+        |> not
+        )
+      |> snd
+
     let run () =
-      
       let solve preambleLength filePath =
-        
-        let numbers =
-          File.ReadAllLines filePath
-          |> Array.map int64
-        
-        let invalidNumber =
-          numbers
-          |> Array.indexed
-          |> Array.skip preambleLength
-          |> Array.find (fun (index, num) ->
-            let previousNumbers = numbers.[index - preambleLength..index - 1]
-            Array.allPairs previousNumbers previousNumbers
-            |> Array.exists (fun (i1, i2) -> i1 + i2 = num)
-            |> not
-            )
-        
-        invalidNumber |> snd
-      
+        readNumbers filePath
+        |> findInvalidNumber preambleLength
       let printResult preambleLength file =
         solve preambleLength file
         |> printfn "Day 9 - Part 1 - First number that is not the sum of the %i numbers before it: %i" preambleLength
-      
+
       printResult 5 "../../../day9-input0.txt"
-      
       printResult 25 "../../../day9-input1.txt"
 
-Day9.Part1.run ()
+  module Part2 =
+    let run () =
+      let solve preambleLength filePath =
+        let numbers = Part1.readNumbers filePath
+        let invalidNumber = Part1.findInvalidNumber preambleLength numbers
+        let findContiguosSet (numbers : Int64 array) (number : Int64) =
+            seq {
+              for length = 2 to numbers.Length do
+                numbers
+                |> Seq.windowed length
+            }
+            |> Seq.concat
+          |> Seq.find (fun a -> Array.sum a = number) 
+        let sumOfSmallesLargest set =
+          Array.min set + Array.max set 
+
+        invalidNumber
+        |> findContiguosSet numbers
+        |> sumOfSmallesLargest
+
+      let printResult preambleLength file =
+        solve preambleLength file
+        |> printfn "Day 9 - Part 2 - The sum of smallest and largest Number is: %i"
+
+      printResult 5 "../../../day9-input0.txt"
+      printResult 25 "../../../day9-input1.txt"
+
+//Day9.Part1.run ()
+Day9.Part2.run ()
