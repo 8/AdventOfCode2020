@@ -886,4 +886,36 @@ module Day9 =
       printResult 25 "../../../day9-input1.txt"
 
 //Day9.Part1.run ()
-Day9.Part2.run ()
+//Day9.Part2.run ()
+
+module Day10 =
+  module Part1 =
+    let run () =
+      
+      let readAdapters file = File.ReadAllLines file |> Array.map int
+      
+      let solve file =
+        let adapters = readAdapters file
+        
+        [|
+           yield 0
+           yield! adapters
+           yield (adapters |> Array.max) + 3
+        |]
+        |> Array.sort
+        |> Array.pairwise
+        |> Array.map (fun (i1, i2) -> i2 - i1)
+        |> Array.groupBy id
+        |> fun groups -> (groups |> Array.find (fun (k, v) -> k = 1) |> (fun (k, v) -> v.Length )) *
+                         (groups |> Array.find (fun (k, v) -> k = 3) |> (fun (k, v) -> v.Length ))
+        
+      solve "../../../day10-input0.txt"
+      |> printfn "Day 10 - Part 1 - test input 0: %i"
+
+      solve "../../../day10-input1.txt"
+      |> printfn "Day 10 - Part 1 - test input 1: %i"
+      
+      solve "../../../day10-input2.txt"
+      |> printfn "Day 10 - Part 1 - real input: %i"
+      
+Day10.Part1.run ()
