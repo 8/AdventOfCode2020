@@ -826,6 +826,38 @@ module Day8 =
       
       solve "../../../day8-input1.txt"
       |> printfn "Day 8 - Part 2 - Accumulator in real input at end: %i"
-
 //Day8.Part1.run ()
-Day8.Part2.run ()
+//Day8.Part2.run ()
+
+module Day9 =
+  module Part1 =
+    let run () =
+      
+      let solve preambleLength filePath =
+        
+        let numbers =
+          File.ReadAllLines filePath
+          |> Array.map int64
+        
+        let invalidNumber =
+          numbers
+          |> Array.indexed
+          |> Array.skip preambleLength
+          |> Array.find (fun (index, num) ->
+            let previousNumbers = numbers.[index - preambleLength..index - 1]
+            Array.allPairs previousNumbers previousNumbers
+            |> Array.exists (fun (i1, i2) -> i1 + i2 = num)
+            |> not
+            )
+        
+        invalidNumber |> snd
+      
+      let printResult preambleLength file =
+        solve preambleLength file
+        |> printfn "Day 9 - Part 1 - First number that is not the sum of the %i numbers before it: %i" preambleLength
+      
+      printResult 5 "../../../day9-input0.txt"
+      
+      printResult 25 "../../../day9-input1.txt"
+
+Day9.Part1.run ()
