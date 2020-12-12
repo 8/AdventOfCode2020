@@ -1,5 +1,6 @@
 open System
 open System.Collections.Generic
+open System.Diagnostics
 open System.IO
 open System.Text.RegularExpressions
 
@@ -981,4 +982,136 @@ module Day10 =
       |> printfn "Day 10 - Part 2 - real input: %i"
 
 //Day10.Part1.run ()
-Day10.Part2.run ()
+//let sw = Stopwatch.StartNew()
+//Day10.Part2.run ()
+//sw.Stop()
+//printfn $"{sw.ElapsedMilliseconds}ms"
+
+module Day11 =
+  type Seat = 
+    | Floor
+    | Empty
+    | Occupied
+
+  module Seat =
+    let fromChar c =
+      match c with
+      | 'L' -> Empty
+      | '#' -> Occupied
+      | '.' -> Floor
+      | _ -> raise <| ArgumentOutOfRangeException (nameof c, $"Unknown character: {c}")
+    let print (seats : Seat [,]) =
+      for y = 0 to seats.GetLength(1) - 1 do
+        for x = 0 to seats.GetLength(0) - 1 do
+          let c =
+            match seats.[x,y] with
+            | Empty -> 'L'
+            | Occupied -> '#'
+            | Floor -> '.'
+
+          printf "%c" c
+        printfn ""
+      printfn ""
+      ()
+    
+
+  module Seats =
+    let fromFile filePath =
+      let transpose (a : Seat [,]) =
+        let a' = Array2D.create (a.GetLength(1)) (a.GetLength(0)) Empty
+        for i in 0..a.GetLength(0) - 1 do
+          for j in 0..a.GetLength(1) - 1 do
+            a'.[j,i] <- a.[i,j]
+        a'
+
+      File.ReadAllLines filePath
+      |> Array.map (fun line -> line.ToCharArray())
+      |> Array.map (Array.map Seat.fromChar)
+      |> array2D
+      |> transpose
+
+    let tick seats =
+
+      let neighbors (array : Seat[,]) (x, y) =
+        let width = array.GetLength(0)
+        let height = array.GetLength(1)
+        seq {
+          for y' = max (y - 1) 0 to min (y + 1) (height - 1) do
+            for x' = max (x - 1) 0 to min (x + 1) (width - 1) do
+              if not (x' = x && y' = y) then 
+                yield array.[x',y']
+        }
+
+      let countOccupiedNeighbors (array : Seat[,]) (x,y) =
+        neighbors array (x,y)
+        |> Seq.map (function | Occupied -> 1 | _ -> 0)
+        |> Seq.sum
+      
+      let seats' = seats |> Array2D.copy
+
+      for x = 0 to seats.GetLength(0) - 1 do
+        for y = 0 to seats.GetLength(1) - 1 do
+          seats'.[x,y] <-
+            match seats.[x,y] with
+            | Floor -> Floor
+            | Occupied
+            | Empty ->
+              match countOccupiedNeighbors seats (x, y) with
+              | 0 -> Occupied
+              | n when n >= 4 -> Empty
+              | _ -> seats.[x,y]
+
+      seats'
+
+    let doTick seats =
+      seq {
+        let mutable seats' = seats
+        while true do
+          seats' <- tick seats'
+          yield seats'
+      }
+      
+    let equals (seats1 : Seat [,]) (seats2 : Seat [,]) =
+      if (seats1.GetLength(0) <> seats2.GetLength(0)) ||
+         (seats1.GetLength(1) <> seats2.GetLength(1)) then
+         false
+      else
+        seq {
+          for x in 0..seats1.GetLength(0) - 1 do
+            for y in 0..seats1.GetLength(1) - 1 do
+              yield seats1.[x,y] = seats2.[x,y]
+        }
+        |> Seq.forall id
+
+  module Part1 =
+    let run () =
+      
+      let solve filePath =
+
+        let seats = Seats.fromFile filePath
+        
+//        seats |> Seat.print
+//        Seats.doTick seats
+//        |> Seq.take 5
+//        |> Seq.iter Seat.print
+
+        seats
+        |> Seats.doTick
+        |> Seq.pairwise
+        |> Seq.find (fun (seats1, seats2) -> Seats.equals seats1 seats2)
+        |> snd
+//        |> fun s ->
+//          Seat.print s
+//          s
+        |> Seq.cast<Seat>
+        |> Seq.toArray
+        |> Array.filter (fun seat -> seat = Occupied)
+        |> Array.length
+
+      solve "../../../day11-input0.txt"
+      |> printfn "Day 11 - Part 1 - real test: %i"
+      
+      solve "../../../day11-input1.txt"
+      |> printfn "Day 11 - Part 1 - real input: %i"
+      
+Day11.Part1.run ()
