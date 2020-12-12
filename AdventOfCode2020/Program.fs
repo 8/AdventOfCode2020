@@ -890,10 +890,9 @@ module Day9 =
 
 module Day10 =
   module Part1 =
+    let readAdapters file = File.ReadAllLines file |> Array.map int
+    
     let run () =
-      
-      let readAdapters file = File.ReadAllLines file |> Array.map int
-      
       let solve file =
         let adapters = readAdapters file
         
@@ -917,5 +916,69 @@ module Day10 =
       
       solve "../../../day10-input2.txt"
       |> printfn "Day 10 - Part 1 - real input: %i"
+  
+  module Part2 =
+    let run () =
+      let solve file =
+        let adapters = File.ReadAllLines file |> Array.map int64
+        let jolts = ([|
+           yield 0L
+           yield! adapters |> Array.sort
+           yield (adapters |> Array.max) + 3L
+        |])
+        
+        let diffs = 
+          jolts
+          |> Array.pairwise
+          |> Array.map (fun (i1, i2) -> i2 - i1)
+
+        let streaks =
+          diffs
+          |> (fun diffs -> [|
+            let mutable count = 0L
+            let mutable item = None
+            for d in diffs do
+              if Option.isNone item then
+                item <- Some d
+
+              if item = Some d then
+                item <- Some d
+                count <- count + 1L
+              else
+                yield Option.get item, count
+                count <- 1L
+                item <- Some d
+
+            if Option.isSome item then
+              yield Option.get item, count
+          |])
+          
+        let streakLength2Multiplier length =
+          match length with
+          | 1L -> 1L
+          | 2L -> 2L
+          | 3L -> 4L
+          | 4L -> 7L
+          | 5L -> 13L
+          | _ -> raise <| ArgumentOutOfRangeException (nameof length, $"Mapping for streak Length {length} not implemented")
+        
+        let result =
+          streaks
+          |> Array.filter (fun (item, count) -> item = 1L)
+          |> Array.map snd
+          |> Array.map streakLength2Multiplier
+          |> Array.fold (*) 1L
+          
+        result
+
+      solve "../../../day10-input0.txt"
+      |> printfn "Day 10 - Part 2 - test input 0: %i"
+
+      solve "../../../day10-input1.txt"
+      |> printfn "Day 10 - Part 2 - test input 1: %i"
       
-Day10.Part1.run ()
+      solve "../../../day10-input2.txt"
+      |> printfn "Day 10 - Part 2 - real input: %i"
+
+//Day10.Part1.run ()
+Day10.Part2.run ()
