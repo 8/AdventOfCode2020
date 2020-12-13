@@ -1063,7 +1063,7 @@ module Day11 =
 
       seats'
 
-    let doTick seats =
+    let futureSeats tick seats  =
       seq {
         let mutable seats' = seats
         while true do
@@ -1096,7 +1096,7 @@ module Day11 =
 //        |> Seq.iter Seat.print
 
         seats
-        |> Seats.doTick
+        |> Seats.futureSeats Seats.tick
         |> Seq.pairwise
         |> Seq.find (fun (seats1, seats2) -> Seats.equals seats1 seats2)
         |> snd
@@ -1113,5 +1113,84 @@ module Day11 =
       
       solve "../../../day11-input1.txt"
       |> printfn "Day 11 - Part 1 - real input: %i"
+
+  module Part2 =
+    let run () =
       
-Day11.Part1.run ()
+      let solve filePath =
+        
+        let tick seats =
+
+          let countOccupiedVisible (seats: Seat [,]) (x, y) =
+
+            let directions = [|
+              1, 0
+              1, 1
+              0, 1
+              -1, 1
+              -1, 0
+              -1, -1
+              0, -1
+              1, -1
+            |]
+            
+            let posInDir =
+              let positionsInDirection (array : Seat [,]) ((x, y) : int * int) (direction : int * int) : (int * int) seq =
+                seq {
+                  let xMax = array.GetLength(0) - 1
+                  let yMax = array.GetLength(1) - 1
+                  let mutable pos = (x, y)
+                  while
+                    ( pos <- (fst pos + fst direction, snd pos + snd direction)
+                      let (x', y') = pos
+                      (x' >= 0) && (x' <= xMax) && (y' >= 0) && (y' <= yMax) )
+                    do
+                      yield pos
+                }
+              positionsInDirection seats (x, y)
+
+            directions
+            |> Array.map posInDir
+            |> Array.map (Seq.map (fun (x, y) -> seats.[x, y]))
+            |> Array.map (Seq.tryFind (fun seat -> seat <> Floor))
+            |> Array.filter (fun seat -> seat = Some Occupied)
+            |> Array.length
+          
+          let seats' = seats |> Array2D.copy
+
+          for x = 0 to seats.GetLength(0) - 1 do
+            for y = 0 to seats.GetLength(1) - 1 do
+              seats'.[x,y] <-
+                match seats.[x,y] with
+                | Floor -> Floor
+                | Occupied
+                | Empty ->
+                  match countOccupiedVisible seats (x, y) with
+                  | 0 -> Occupied
+                  | n when n >= 5 -> Empty
+                  | _ -> seats.[x,y]
+
+          seats'
+          
+        let seats = Seats.fromFile filePath
+
+        seats
+        |> Seats.futureSeats tick
+        |> Seq.pairwise
+        |> Seq.find (fun (seats1, seats2) -> Seats.equals seats1 seats2)
+        |> snd
+        |> Seq.cast<Seat>
+        |> Seq.toArray
+        |> Array.filter (fun seat -> seat = Occupied)
+        |> Array.length
+
+      
+      solve "../../../day11-input0.txt"
+      |> printfn "Day 11 - Part 2 - test: %i"
+      
+      solve "../../../day11-input1.txt"
+      |> printfn "Day 11 - Part 2 - real: %i"
+    
+    
+//Day11.Part1.run ()
+Day11.Part2.run ()
