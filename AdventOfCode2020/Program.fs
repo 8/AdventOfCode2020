@@ -1377,4 +1377,30 @@ module Day12 =
       solve "../../../day12-input1.txt"
       |> printfn "Day 12 - Part 2 Manhatten Distance for the real input is: %i"
       
-Day12.Part2.run()
+//Day12.Part2.run()
+
+module Day13 =
+  module Part1 =
+    let run () =
+      let solve filePath =
+        let lines = File.ReadAllLines filePath
+        
+        let departure = lines.[0] |> int
+        let busses =
+          lines.[1].Split(",")
+          |> Array.filter (fun s -> s <> "x")
+          |> Array.map int
+        
+        busses
+        |> Array.map (fun bus -> (bus, departure % bus |> function 0 -> 0 | i -> bus - i))
+        |> Array.sortBy snd
+        |> Array.head
+        |> fun (bus, min) -> bus * min
+    
+      solve "../../../day13-input0.txt"
+      |> printfn "Day 13 - Part 1 - result for test input: %i"
+      
+      solve "../../../day13-input1.txt"
+      |> printfn "Day 13 - Part 1 - result for test input: %i"
+  
+Day13.Part1.run ()
