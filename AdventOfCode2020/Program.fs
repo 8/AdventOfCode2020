@@ -1184,13 +1184,109 @@ module Day11 =
         |> Array.filter (fun seat -> seat = Occupied)
         |> Array.length
 
-      
       solve "../../../day11-input0.txt"
       |> printfn "Day 11 - Part 2 - test: %i"
       
       solve "../../../day11-input1.txt"
       |> printfn "Day 11 - Part 2 - real: %i"
-    
-    
+
 //Day11.Part1.run ()
-Day11.Part2.run ()
+//Day11.Part2.run ()
+let measure (f : unit -> unit) =
+  let elapsed =
+    let sw = Stopwatch.StartNew ()
+    f ()
+    sw.Stop()
+    sw.Elapsed
+  printfn $"took {elapsed.TotalMilliseconds}ms"
+  
+//measure (fun () -> Day11.Part1.run ()) |> ignore
+
+module Day12 =
+  
+  type Facing = North | East | South | West
+  type State = { X : int; Y : int; Facing : Facing }
+  type Move = { X : int; Y : int }
+  type Direction = Left | Right
+  type Turn = {
+    Direction : Direction
+    Angle : int
+  }
+  type Forward = { Value : int }
+  type Instruction =
+    | Move of Move
+    | Turn of Turn
+    | Forward of Forward
+
+  module Instruction =
+    let fromString s : Instruction =
+      let r = Regex("^(?<Code>[NSEWLRF])(?<Value>\d+)$")
+      let m = r.Match(s)
+
+      if not m.Success then
+        raise <| ArgumentOutOfRangeException(nameof s, $"Invalid input '{s}'")
+      
+      let code = m.Groups.["Code"].Value
+      let value = m.Groups.["Value"].Value |> int
+      
+      match code with
+      | "N" -> Move { X = 0; Y = value }
+      | "S" -> Move { X = 0; Y = -value }
+      | "E" -> Move { X = value; Y = 0 }
+      | "W" -> Move { X = -value; Y = 0 }
+      | "F" -> Forward { Value = value }
+      | "L" -> Turn { Direction = Direction.Left; Angle = value }
+      | "R" -> Turn { Direction = Direction.Right; Angle = value }
+      | _ -> raise <| NotSupportedException($"The instruction code '{code}' is not supported")
+    
+    let execute (state : State) (instruction : Instruction) : State =
+
+      match instruction with
+      | Move m -> { state with State.X = state.X + m.X; Y = state.Y + m.Y }
+      | Forward f ->
+        match state.Facing with
+        | North -> { state with Y = state.Y + f.Value }
+        | East -> { state with X = state.X + f.Value }
+        | South -> { state with Y = state.Y - f.Value }
+        | West -> { state with X = state.X - f.Value }
+      | Turn t ->
+        let curAngle =
+          match state.Facing with
+          | East -> 0
+          | North -> 90
+          | West -> 180
+          | South -> 270
+        let a = t.Angle * if t.Direction = Left then 1 else -1
+        let facing =
+          let newAngle = (((curAngle + a) % 360) + 360) % 360
+          match newAngle with
+          | 0 -> Facing.East
+          | 90 -> Facing.North
+          | 180 -> Facing.West
+          | 270 -> Facing.South
+          | _ -> raise <| NotSupportedException($"Unsupported angle: {newAngle}")
+        { state with Facing = facing }
+      | _ -> raise <| NotSupportedException($"Unsupported instruction: {instruction}")
+
+  module Part1 =
+    let run () =
+      let solve filePath =
+        
+        let manhattenDistance (position : State) : int =
+          abs(position.X) + abs(position.Y)
+
+        let state = { X = 0; Y = 0; Facing = East }
+
+        File.ReadAllLines filePath
+        |> Array.map Instruction.fromString
+        |> Array.fold Instruction.execute state
+        |> manhattenDistance
+        
+
+      solve "../../../day12-input0.txt"
+      |> printfn "Day 12 - Part 12: Manhatten Distance for test input is: %i"
+      
+      solve "../../../day12-input1.txt"
+      |> printfn "Day 12 - Part 13 Manhatten Distance for the readl input is: %i" 
+ 
+Day12.Part1.run ()
